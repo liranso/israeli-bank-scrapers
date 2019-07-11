@@ -58,7 +58,7 @@ typings/
 .env
 
 # NPM package related
-lib/
+#lib/
 
 # IDEs
 .idea
