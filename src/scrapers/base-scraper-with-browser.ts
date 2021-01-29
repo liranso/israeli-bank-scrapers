@@ -192,35 +192,42 @@ class BaseScraperWithBrowser extends BaseScraper {
   }
 
   async login(credentials: Record<string, string>): Promise<ScaperScrapingResult> {
-    if (!credentials || !this.page) {
-      return createGeneralError();
+    try {
+      if (!credentials || !this.page) {
+        return createGeneralError();
+      }
+
+      const loginOptions = this.getLoginOptions(credentials);
+
+      await this.navigateTo(loginOptions.loginUrl);
+      if (loginOptions.checkReadiness) {
+        await loginOptions.checkReadiness();
+      } else {
+        await waitUntilElementFound(this.page, loginOptions.submitButtonSelector);
+      }
+
+      if (loginOptions.preAction) {
+        await loginOptions.preAction();
+      }
+      await this.fillInputs(loginOptions.fields);
+      await clickButton(this.page, loginOptions.submitButtonSelector);
+      this.emitProgress(ScaperProgressTypes.LoggingIn);
+
+      if (loginOptions.postAction) {
+        await loginOptions.postAction();
+      } else {
+        await waitForNavigation(this.page);
+      }
+
+      const current = await getCurrentUrl(this.page, true);
+      const loginResult = await getKeyByValue(loginOptions.possibleResults, current, this.page);
+      return handleLoginResult(this, loginResult);
+    } catch (error) {
+      const failureFile = 'failure.png';
+      await this.page.screenshot({ path: failureFile });
+      error.screenshotFailurePath = failureFile;
+      throw error;
     }
-
-    const loginOptions = this.getLoginOptions(credentials);
-
-    await this.navigateTo(loginOptions.loginUrl);
-    if (loginOptions.checkReadiness) {
-      await loginOptions.checkReadiness();
-    } else {
-      await waitUntilElementFound(this.page, loginOptions.submitButtonSelector);
-    }
-
-    if (loginOptions.preAction) {
-      await loginOptions.preAction();
-    }
-    await this.fillInputs(loginOptions.fields);
-    await clickButton(this.page, loginOptions.submitButtonSelector);
-    this.emitProgress(ScaperProgressTypes.LoggingIn);
-
-    if (loginOptions.postAction) {
-      await loginOptions.postAction();
-    } else {
-      await waitForNavigation(this.page);
-    }
-
-    const current = await getCurrentUrl(this.page, true);
-    const loginResult = await getKeyByValue(loginOptions.possibleResults, current, this.page);
-    return handleLoginResult(this, loginResult);
   }
 
   async terminate() {

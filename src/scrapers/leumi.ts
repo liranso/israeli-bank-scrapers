@@ -191,6 +191,7 @@ async function fetchTransactionsForAccount(page: Page, startDate: Moment, accoun
   await dropdownSelect(page, 'select#ddlAccounts_m_ddl', accountId);
   await dropdownSelect(page, 'select#ddlTransactionPeriod', '004');
   await waitUntilElementFound(page, 'select#ddlTransactionPeriod');
+  // await waitUntilElementFound(page, 'select#ddlTransactionPeriod11111');
   await fillInput(
     page,
     'input#dtFromDate_textBox',
@@ -205,8 +206,8 @@ async function fetchTransactionsForAccount(page: Page, startDate: Moment, accoun
 
   const accountNumber = selectedSnifAccount.replace('/', '_');
 
-  const balanceValue = await page.$eval('#lblBalancesVal', (element) => element.textContent);
-  const balance = balanceValue ? parseFloat(balanceValue.replace(/[^\d.]/g, '')) : undefined;
+  // const balanceValue = await page.$eval('#lblBalancesVal', (element) => element.textContent);
+  const balance = 0;// balanceValue ? parseFloat(balanceValue.replace(/[^\d.]/g, '')) : undefined;
 
   await Promise.race([
     waitUntilElementFound(page, 'table#WorkSpaceBox table#ctlActivityTable', false),
@@ -274,19 +275,26 @@ class LeumiScraper extends BaseScraperWithBrowser {
   }
 
   async fetchData(): Promise<ScaperScrapingResult> {
-    const defaultStartMoment = moment().subtract(1, 'years').add(1, 'day');
-    const startDate = this.options.startDate || defaultStartMoment.toDate();
-    const startMoment = moment.max(defaultStartMoment, moment(startDate));
+    try {
+      const defaultStartMoment = moment().subtract(1, 'years').add(1, 'day');
+      const startDate = this.options.startDate || defaultStartMoment.toDate();
+      const startMoment = moment.max(defaultStartMoment, moment(startDate));
 
-    const url = getTransactionsUrl();
-    await this.navigateTo(url);
+      const url = getTransactionsUrl();
+      await this.navigateTo(url);
 
-    const accounts = await fetchTransactions(this.page, startMoment);
+      const accounts = await fetchTransactions(this.page, startMoment);
 
-    return {
-      success: true,
-      accounts,
-    };
+      return {
+        success: true,
+        accounts,
+      };
+    } catch (error) {
+      const path = 'failure.png';
+      await this.page.screenshot({ path });
+      error.screenshotFailurePath = path;
+      throw error;
+    }
   }
 }
 

@@ -136,21 +136,25 @@ export class BaseScraper {
     let loginResult;
     try {
       loginResult = await this.login(credentials);
-    } catch (e) {
-      loginResult = e instanceof TimeoutError ?
-        createTimeoutError(e.message) :
-        createGenericError(e.message);
+    } catch (error) {
+      loginResult = error instanceof TimeoutError ?
+        createTimeoutError(error.message) :
+        createGenericError(error.message);
+      // @ts-ignore
+      loginResult.screenshotFailurePath = error.screenshotFailurePath;
     }
 
     let scrapeResult;
     if (loginResult.success) {
       try {
         scrapeResult = await this.fetchData();
-      } catch (e) {
+      } catch (error) {
         scrapeResult =
-          e instanceof TimeoutError ?
-            createTimeoutError(e.message) :
-            createGenericError(e.message);
+          error instanceof TimeoutError ?
+            createTimeoutError(error.message) :
+            createGenericError(error.message);
+        // @ts-ignore
+        scrapeResult.screenshotFailurePath = error.screenshotFailurePath;
       }
     } else {
       scrapeResult = loginResult;
